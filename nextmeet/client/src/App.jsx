@@ -1,39 +1,43 @@
-import { useState } from 'react'
-import { useState } from 'react'
-import Room from './Room'
-import { BrowserRouter , Route , Routes , useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import Room from "./Room";
 
-function Home(){
-  const [name , setName] = useState("");
-  const [room , setRoom] = useState("");
-  const nav = useNavigate();
-  const join = ()=>{
-    sessionStorage.setItem("name", name || "Guest");
-    nav(`/room/${room || Math.random().toString(36).slice(2 , 8)}`);
-    return (
-      <div style={{maxWidth: 320 , margib:"20vh auto", display:"grid", gap: 8}}>
-        <h1>NextMeet</h1>
-        <input placeholder='Your name' value={name} onChange={(e)=>setName(e.target.value)}/>
-        <input placeholder='Room ID(blank=new)' value={room} onChange={(e)=>setRoom(e.target.value)}/>
-        <button onClick={join} >Join</button>
+function Home() {
+  const [name, setName] = useState("");
+  const [room, setRoom] = useState("");
+  const navigate = useNavigate();
 
-      </div>
-    )
-  }
-}
-
-function App() {
-
+  const join = () => {
+    sessionStorage.setItem("name", name.trim() || "Guest");
+    const roomId = room.trim() || Math.random().toString(36).slice(2, 8);
+    navigate(`/room/${encodeURIComponent(roomId)}`);
+  };
 
   return (
-    <BrowserRouter>
-    <Routes>
-      <Route path ="/" element={<Home/>}/>
-      <Route path = "/room/:roomId" element={<Room/>}/>
-    </Routes>
-    </BrowserRouter>
-    
-  )
+    <div style={{ maxWidth: 320, margin: "20vh auto", display: "grid", gap: 8 }}>
+      <h1>NextMeet</h1>
+      <input
+        placeholder="Your name"
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
+      <input
+        placeholder="Room ID (blank = new)"
+        value={room}
+        onChange={(event) => setRoom(event.target.value)}
+      />
+      <button onClick={join}>Join</button>
+    </div>
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/room/:roomId" element={<Room />} />
+      </Routes>
+    </BrowserRouter>
+  );
+  }

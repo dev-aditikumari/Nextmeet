@@ -32,15 +32,13 @@ async function fetchIceServers(){
   ];
 
 }
-const iceRef = useRef(STUN_ONLY);
-
 const DISCONNECT_GRACE_MS = 3000;
 const MAX_ICE_RESTARTS =3;
 const MAX_REBUILDS = 2;
 const logEvent = (type , extra) => console.log("[nexmeet]",type , extra ??"");
 
 export function useRoom(roomId , name){
-    const [locatStream , setLocalStream] = useState(null);
+    const [localStream , setLocalStream] = useState(null);
     const [peers , setPeers] = useState({});// id->{name , stream}
     const socketRef = useRef(null);
     const pcs = useRef({});
@@ -53,6 +51,7 @@ export function useRoom(roomId , name){
     const [socketStatus , setSocketStatus] = useState("connecting");
     const meta = useRef({});
     const pendingIce = useRef({});
+    const iceRef = useRef(STUN_ONLY);
 
     useEffect(()=>{
         let cancelled = false ;
@@ -88,7 +87,7 @@ export function useRoom(roomId , name){
             })
 
         };
-        const makeOffer = async (id , {iceRestart = fals , fresh = false }={})=>{
+        const makeOffer = async (id , {iceRestart = false , fresh = false }={})=>{
         const pc= pcs.current[id];
         if(!pc)return ;
         const offer = await pc.createOffer({iceRestart});
@@ -128,7 +127,7 @@ export function useRoom(roomId , name){
                 rebuild(id);
             }
         };
-        const createPC = (id , peerName) =>{
+        const createPC = (id , peerName, initiator) =>{
             const pc = new RTCPeerConnection({
                 iceServers : iceRef.current,
                 iceTransportPolicy: FORCE_RELAY? "relay":"all",
@@ -141,7 +140,7 @@ export function useRoom(roomId , name){
                 rebuilds: prev?.rebuilds || 0,
                 timer : null,
                 name :peerName,
-                startAt : prev?.startAt ?? performance.now(),
+                startedAt : prev?.startedAt ?? performance.now(),
                 setupDone : prev?.setupDone || false ,
                 disruptedAt : prev?.disruptedAt || null,
                 setupTimer : null,
@@ -160,7 +159,7 @@ if (!m0.setupDone && !m0.setupReported) {
 }
             pcs.current[id] = pc;
 
-            localRef.current.getTrack().forEach((t)=>pc.addTrack(t , localRef.current));
+            localRef.current.getTracks().forEach((t)=>pc.addTrack(t , localRef.current));
             // if I'm already sharing my screen, send that instead of the camera
 
             if(screenRef.current){
@@ -179,7 +178,7 @@ if (!m0.setupDone && !m0.setupReported) {
             pc.ontrack =(e)=>{
                 updatePeer( id , {stream : e.streams[0]});
             };
-            pc.oniceconnectionsstatechange=()=>{
+            pc.oniceconnectionstatechange=()=>{
                 const m = meta.current[id];
                 if(!m ||pcs.current[id] !==pc)return ;//stale connection
                 const state = pc.iceConnectionState;
@@ -190,12 +189,12 @@ if (!m0.setupDone && !m0.setupReported) {
                     m.setupDone = true ;
                     if(!m.setupReported){
                         m.setupReported = true ;
-                        report (id , "setup_ok",{ms:Math.round(performance.now()-m.startedAt)});
+                        reporter(id , "setup_ok",{ms:Math.round(performance.now()-m.startedAt)});
 
                     }
                  }
                  if(m.disruptedAt){
-                    report(id , "recovered",{ms: Math.round(performance.now()-m.disruptedAt)});
+                    reporter(id , "recovered",{ms: Math.round(performance.now()-m.disruptedAt)});
                     m.disruptedAt = null;
                  }
                  m.restarts = 0;
@@ -206,13 +205,13 @@ if (!m0.setupDone && !m0.setupReported) {
         if(!m.setupDone){
             if(state === "failed" && !m.setupReported){
                 m.setupReported = true;
-                report(id , "setup_failed" , {npte :"ice_failed"});
+                reporter(id , "setup_failed" , {note :"ice_failed"});
 
             }
         }
         else if(!m.disruptedAt){
             m.disruptedAt = performance.now();
-            report ( id  , "disruption",{note: state});
+            reporter(id, "disruption",{note: state});
 
         }
         // baseline mode : no app-level recovery , just show the state
@@ -253,7 +252,7 @@ if (!m0.setupDone && !m0.setupReported) {
             }
         })();
         // I'm the newcomer: offer to everyone already here
-        socket.on("connected", ()=>{
+        socket.on("connect", ()=>{
            setSocketStatus("connected");
            if(joined && localRef.current){
             // socket dropped and came back with a NEW id , so the server forgot us:
@@ -272,7 +271,7 @@ if (!m0.setupDone && !m0.setupReported) {
                 await makeOffer(u.id); 
             }
         });
-        socket.on("signal", async({form , data})=>{
+        socket.on("signal", async({from , data})=>{
             try{
                 if(data.requestRestart) return recover(from);
 
@@ -342,7 +341,7 @@ if (!m0.setupDone && !m0.setupReported) {
         const toggleVideo =()=>{
    const track = localRef.current?.getVideoTracks()[0];
    if(!track)return ;
-     track.enabled = track.enabled;
+     track.enabled = !track.enabled;
      setVideoOn(track.enabled);
      socketRef.current.emit("media-state",{video: track.enabled});
 
@@ -357,10 +356,10 @@ if (!m0.setupDone && !m0.setupReported) {
         }
         const stopScreenShare =()=>{
             if(!screenRef.current)return ;
-            screenRef.current?.getTrack().forEach((t)=>t.stop());
+            screenRef.current?.getTracks().forEach((t)=>t.stop());
             screenRef.current= null;
             setScreenStream(null);
-            swapVideoTrack(localRef.current.getVideoTracks()[0]);//back to camera
+            swapVideoTrack(localRef.current?.getVideoTracks()[0] ?? null);//back to camera
             socketRef.current.emit("media-state",{sharing:false});
 
         }
@@ -379,5 +378,5 @@ if (!m0.setupDone && !m0.setupReported) {
             }
         };
         
-    return {locatStream , peers ,  socketStatus, videoOn , audioOn,toggleAudio,toggleVideo , messages , sendMessage , screenStream , startScreenShare , stopScreenShare};
+    return {localStream , peers , socketStatus, videoOn , audioOn,toggleAudio,toggleVideo , messages , sendMessage , screenStream , startScreenShare , stopScreenShare};
 }

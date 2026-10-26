@@ -5,11 +5,11 @@ const Chat = ({messages , onSend}) => {
     const [text , setText] = useState("");
     const endRef = useRef();
     useEffect(()=>{
-        endRef.current?.scrollIntoView({behaviour:"smooth"});
+        endRef.current?.scrollIntoView({ behavior: "smooth" });
 
     },[messages]);
     const submit = ()=>{
-        onsubmit(text);
+        onSend(text);
         setText("");
     };
   return (
