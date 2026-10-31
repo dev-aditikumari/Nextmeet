@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export default function VideoTile({ stream, name, muted = false, audioOn = true, videoOn = true, sharing = false, status }) {
+export default function VideoTile({ stream, name, muted = false, audioOn = true, videoOn = true, sharing = false, hand = false, status }) {
   const ref = useRef();
 
   useEffect(() => {
@@ -19,6 +19,7 @@ export default function VideoTile({ stream, name, muted = false, audioOn = true,
         </div>
       )}
       <div className="tile-badges">
+        {hand && <span className="badge amber">Hand raised</span>}
         {sharing && <span className="badge blue">Sharing</span>}
         {!audioOn && <span className="badge red">Muted</span>}
         {status && status !== "connected" && <span className="badge">{status}</span>}

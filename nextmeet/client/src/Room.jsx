@@ -10,7 +10,7 @@ export default function Room() {
   const name = sessionStorage.getItem("name") || "Guest";
   const {
     localStream, peers, messages, sendMessage, audioOn, videoOn, toggleAudio, toggleVideo,
-    screenStream, startScreenShare, stopScreenShare, socketStatus, error,
+    screenStream, startScreenShare, stopScreenShare, socketStatus, error, handOn, toggleHand,
   } = useRoom(roomId, name);
 
   const [panel, setPanel] = useState(null);
@@ -28,6 +28,20 @@ export default function Room() {
   }, [messages, panel]);
 
   const toggle = (p) => setPanel((cur) => (cur === p ? null : p));
+
+  // keyboard shortcuts: M mute, V camera, H raise hand, C chat
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.target.tagName === "INPUT" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "m") toggleAudio();
+      else if (key === "v") toggleVideo();
+      else if (key === "h") toggleHand();
+      else if (key === "c") toggle("chat");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
   const tiles = Object.entries(peers);
   const cols = Math.ceil(Math.sqrt(tiles.length + 1));
   const sharer = screenStream ? "You" : tiles.find(([, p]) => p.sharing)?.[1].name;
@@ -64,7 +78,10 @@ export default function Room() {
           <span>{name}</span>
         </div>
 
-        {socketStatus !== "connected" && (
+        {!localStream && (
+          <div className="banner info">Waiting for camera and microphone access. Choose Allow in the browser prompt.</div>
+        )}
+        {localStream && socketStatus !== "connected" && (
           <div className="banner warn">Connection to the server was lost. Reconnecting...</div>
         )}
         {sharer && (
@@ -81,6 +98,7 @@ export default function Room() {
             audioOn={audioOn}
             videoOn={videoOn}
             sharing={!!screenStream}
+            hand={handOn}
           />
           {tiles.map(([id, p]) => (
             <VideoTile
@@ -90,18 +108,22 @@ export default function Room() {
               audioOn={p.audio !== false}
               videoOn={p.video !== false}
               sharing={p.sharing}
+              hand={p.hand}
               status={p.status}
             />
           ))}
         </div>
 
         <div className="controls">
-          <button onClick={toggleAudio}>{audioOn ? "Mute" : "Unmute"}</button>
-          <button onClick={toggleVideo}>{videoOn ? "Camera off" : "Camera on"}</button>
-          <button className={screenStream ? "active" : ""} onClick={screenStream ? stopScreenShare : startScreenShare}>
+          <button disabled={!localStream} onClick={toggleAudio} title="Shortcut: M">{audioOn ? "Mute" : "Unmute"}</button>
+          <button disabled={!localStream} onClick={toggleVideo} title="Shortcut: V">{videoOn ? "Camera off" : "Camera on"}</button>
+          <button disabled={!localStream} className={handOn ? "active" : ""} onClick={toggleHand} title="Shortcut: H">
+            {handOn ? "Lower hand" : "Raise hand"}
+          </button>
+          <button disabled={!localStream} className={screenStream ? "active" : ""} onClick={screenStream ? stopScreenShare : startScreenShare}>
             {screenStream ? "Stop sharing" : "Share screen"}
           </button>
-          <button className={panel === "chat" ? "active" : ""} onClick={() => toggle("chat")}>
+          <button className={panel === "chat" ? "active" : ""} onClick={() => toggle("chat")} title="Shortcut: C">
             Chat {unread > 0 && `(${unread})`}
           </button>
           <button className={panel === "people" ? "active" : ""} onClick={() => toggle("people")}>
@@ -125,6 +147,7 @@ export default function Room() {
               {!audioOn && <span className="badge red">Muted</span>}
               {!videoOn && <span className="badge">Camera off</span>}
               {screenStream && <span className="badge blue">Sharing</span>}
+              {handOn && <span className="badge amber">Hand raised</span>}
             </li>
             {tiles.map(([id, p]) => (
               <li key={id}>
@@ -132,6 +155,7 @@ export default function Room() {
                 {p.audio === false && <span className="badge red">Muted</span>}
                 {p.video === false && <span className="badge">Camera off</span>}
                 {p.sharing && <span className="badge blue">Sharing</span>}
+                {p.hand && <span className="badge amber">Hand raised</span>}
                 {p.status && p.status !== "connected" && <em>({p.status})</em>}
               </li>
             ))}

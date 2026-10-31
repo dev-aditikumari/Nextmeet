@@ -60,6 +60,8 @@ export function useRoom(roomId , name){
     const screenRef = useRef(null);
     const [audioOn , setAudioOn] = useState(true);
     const [videoOn , setVideoOn] = useState(true);
+    const [handOn , setHandOn] = useState(false);
+    const handRef = useRef(false);
     const [socketStatus , setSocketStatus] = useState("connecting");
     const [error , setError] = useState(null);
     const meta = useRef({});
@@ -86,6 +88,7 @@ export function useRoom(roomId , name){
                 audio : localRef.current.getAudioTracks()[0]?.enabled ?? false,
                 video : localRef.current.getVideoTracks()[0]?.enabled ?? false,
                 sharing : !!screenRef.current,
+                hand : handRef.current,
             })
         }
         const removePeer = (id)=>{
@@ -181,7 +184,7 @@ if (!m0.setupDone && !m0.setupReported) {
             }
             setPeers((p)=>({
                 ...p,
-                [id]:{audio: true , video: true , sharing : false , ...p[id], name:peerName , status:"connecting"},
+                [id]:{audio: true , video: true , sharing : false , hand : false , ...p[id], name:peerName , status:"connecting"},
 
             }));
             pc.onicecandidate = (e) =>{
@@ -293,7 +296,7 @@ if (!m0.setupDone && !m0.setupReported) {
         socket.on("room-users", async(users)=>{
             for (const u of users){
                 createPC(u.id , u.name , true);
-                updatePeer(u.id , {audio: u.audio , video: u.video , sharing : u.sharing});
+                updatePeer(u.id , {audio: u.audio , video: u.video , sharing : u.sharing , hand : u.hand});
                 await makeOffer(u.id); 
             }
         });
@@ -374,6 +377,12 @@ if (!m0.setupDone && !m0.setupReported) {
 
 }
 
+        const toggleHand =()=>{
+            handRef.current = !handRef.current;
+            setHandOn(handRef.current);
+            socketRef.current.emit("media-state",{hand : handRef.current});
+        }
+
         const swapVideoTrack =(track)=>{
             Object.values(pcs.current).forEach((pc)=>{
                 const sender = pc.getSenders().find((s)=>s.track?.kind==="video");
@@ -404,5 +413,5 @@ if (!m0.setupDone && !m0.setupReported) {
             }
         };
         
-    return {localStream , peers , socketStatus , error, videoOn , audioOn,toggleAudio,toggleVideo , messages , sendMessage , screenStream , startScreenShare , stopScreenShare};
+    return {localStream , peers , socketStatus , error, videoOn , audioOn , handOn , toggleHand , toggleAudio,toggleVideo , messages , sendMessage , screenStream , startScreenShare , stopScreenShare};
 }

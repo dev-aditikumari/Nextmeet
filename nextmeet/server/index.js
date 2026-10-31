@@ -111,6 +111,7 @@ io.on("connection", (socket) => {
       audio: payload.audio !== false,
       video: payload.video !== false,
       sharing: payload.sharing === true,
+      hand: payload.hand === true,
     };
     rooms[roomId][socket.id] = me;
     socket.join(roomId);
@@ -123,6 +124,7 @@ io.on("connection", (socket) => {
       audio: me.audio,
       video: me.video,
       sharing: me.sharing,
+      hand: me.hand,
     });
   });
 
@@ -153,7 +155,7 @@ io.on("connection", (socket) => {
     if (!user) return;
 
     const update = {};
-    for (const key of ["audio", "video", "sharing"]) {
+    for (const key of ["audio", "video", "sharing", "hand"]) {
       if (typeof state[key] === "boolean") update[key] = state[key];
     }
     Object.assign(user, update);

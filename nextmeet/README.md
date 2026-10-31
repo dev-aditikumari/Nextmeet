@@ -8,12 +8,20 @@ A browser based video meeting app. Real-time multi-user video rooms built on **W
 - Live in-room chat with unread counts
 - Screen sharing (the video track is swapped, no renegotiation)
 - Mic and camera toggles, synced to everyone in the room (late joiners see the current state)
+- Raise hand, shown on your tile and in the participant list
+- Keyboard shortcuts: **M** mute, **V** camera, **H** raise hand, **C** chat
 - Participant list with muted, camera off and sharing indicators
 - Copy-link button and a leave button
 - Falls back to audio-only or video-only if one device is missing
 - Connection recovery: ICE restart, then a full peer-connection rebuild, and an automatic re-join if the signaling socket drops
 - STUN plus optional TURN fallback for peers behind strict NATs
 - Metrics endpoint (`/metrics`) to measure setup failures and recovery rate
+
+## Screenshots
+
+| Home | Meeting with 5 participants |
+|---|---|
+| ![Home](docs/home.png) | ![Room](docs/room.png) |
 
 ## Tech stack
 
@@ -84,6 +92,17 @@ Server (see `server/.env.example`):
 | `CLIENT_URL` | Allowed frontend origin(s), comma separated (default `*`) |
 | `MAX_ROOM_SIZE` | Maximum people per room (default `6`) |
 
+### Tests
+
+```bash
+cd nextmeet/server
+npm test
+```
+
+10 tests cover the signaling server: chat, room state for late joiners, the room size limit, same-room signaling, input validation, rate limiting, leaving, and the metrics.
+
+The full app was also tried in headless Chrome with fake cameras and microphones, with rooms of up to 5 participants on one machine: everyone sees everyone's video, chat reaches all participants, mute, camera and raise-hand states sync, people can leave, and clients reconnect and restore video after the server is restarted.
+
 ### Testing flags
 
 | URL suffix | Effect |
@@ -108,12 +127,16 @@ Server (see `server/.env.example`):
 
 ## Results
 
-Not measured yet. To collect numbers, run sessions with `?recovery=0` (baseline) and with the defaults, then read `/metrics`.
+Measured with the app's own `/metrics` endpoint: 41 peer connections across three 5-person rooms and a 2-person room, using headless Chrome with fake devices on a single machine (localhost).
 
-| Config | Setup failure rate | Unrecovered disruptions |
-|---|---|---|
-| Baseline | not measured | not measured |
-| Recovery + TURN | not measured | not measured |
+| Measure | Result |
+|---|---|
+| Peer connections set up | 41 |
+| Setup failures | 0 (0%) |
+| Median setup time | 118 ms |
+| Slowest setup | 1409 ms |
+
+This is a sanity check on the signaling and ICE flow on a loopback network. It says nothing about real networks, NATs or TURN. Recovery after real connection drops (the `disruption` and `recovered` metrics) has not been measured yet, so there is no baseline versus recovery comparison. To collect one, run sessions with `?recovery=0` (baseline) and with the defaults over real networks, then read `/metrics`.
 
 ## Limitations and future work
 
@@ -121,3 +144,4 @@ Not measured yet. To collect numbers, run sessions with `?recovery=0` (baseline)
 - No authentication or room passwords, so anyone with the room ID can join
 - Metrics are stored in memory only and reset when the server restarts
 - If a device has no camera, screen sharing is not sent to peers
+- Tested on desktop Chrome only
