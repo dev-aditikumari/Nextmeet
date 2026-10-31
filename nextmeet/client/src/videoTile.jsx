@@ -1,19 +1,29 @@
 import { useEffect, useRef } from "react";
 
-export default function VideoTile({stream , name , muted = false}){
-    const ref = useRef();
-    useEffect(()=>{
-        if(ref.current)ref.current.srcObject = stream;
+export default function VideoTile({ stream, name, muted = false, audioOn = true, videoOn = true, sharing = false, status }) {
+  const ref = useRef();
 
-    },[stream]);
-    return (
-        <div style={{ position: "relative", background: "#111", borderRadius: 12, overflow: "hidden" }}>
-            <video ref={ref} autoPlay playsInline muted={muted}
-           style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-         <span style={{ position: "absolute", left: 8, bottom: 8, color: "#fff",
-                     background: "#0008", padding: "2px 8px", borderRadius: 6 }}>
-        {name}
-      </span>
+  useEffect(() => {
+    if (ref.current) ref.current.srcObject = stream || null;
+  }, [stream]);
+
+  // a shared screen is always shown, even if the camera is off
+  const showVideo = !!stream && (videoOn || sharing);
+
+  return (
+    <div className={`tile ${showVideo ? "" : "off"}`}>
+      <video ref={ref} autoPlay playsInline muted={muted} />
+      {!showVideo && (
+        <div className="avatar">
+          <span>{(name || "?").trim()[0]}</span>
+        </div>
+      )}
+      <div className="tile-badges">
+        {sharing && <span className="badge blue">Sharing</span>}
+        {!audioOn && <span className="badge red">Muted</span>}
+        {status && status !== "connected" && <span className="badge">{status}</span>}
+      </div>
+      <span className="tile-name">{name}</span>
     </div>
   );
 }

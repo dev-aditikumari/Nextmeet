@@ -10,11 +10,23 @@ const VARIANT = `${RECOVERY_ENABLED?  "recovery":"norecovery"}-${USE_TURN ?"turn
 const SETUP_TIMEOUT_MS = 15000;
 //?relay = 1 in the URL forces all media through TURN (great for testing)
 const FORCE_RELAY = new URLSearchParams(window.location.search).get("relay")==="1";
+// camera + mic if possible, otherwise whatever the device has
+async function getLocalStream(){
+    const attempts = [{video:true , audio:true},{audio:true},{video:true}];
+    let lastError;
+    for(const constraints of attempts){
+        try{
+            return await navigator.mediaDevices.getUserMedia(constraints);
+        }catch(err){
+            lastError = err;
+        }
+    }
+    throw lastError;
+}
 async function fetchIceServers(){
     
     const username = import.meta.env.VITE_TURN_USERNAME;
     const credential= import.meta.env.VITE_TURN_PASSWORD ;
-    console.log("TURN creds loaded:", !!username, !!credential);
     if(!credential || !username || !USE_TURN)return STUN_ONLY;
     return [
     { urls: "stun:stun.relay.metered.ca:80" },
@@ -49,6 +61,7 @@ export function useRoom(roomId , name){
     const [audioOn , setAudioOn] = useState(true);
     const [videoOn , setVideoOn] = useState(true);
     const [socketStatus , setSocketStatus] = useState("connecting");
+    const [error , setError] = useState(null);
     const meta = useRef({});
     const pendingIce = useRef({});
     const iceRef = useRef(STUN_ONLY);
@@ -70,8 +83,8 @@ export function useRoom(roomId , name){
             socket.emit("join-room",{
                 roomId , 
                 name ,
-                audio : localRef.current.getAudioTracks()[0]?.enabled ??true,
-                video : localRef.current.getVideoTracks()[0]?.enabled ?? true,
+                audio : localRef.current.getAudioTracks()[0]?.enabled ?? false,
+                video : localRef.current.getVideoTracks()[0]?.enabled ?? false,
                 sharing : !!screenRef.current,
             })
         }
@@ -238,17 +251,20 @@ if (!m0.setupDone && !m0.setupReported) {
         (async ()=>{
             try{
             const [stream , ice] = await Promise.all([
-                navigator.mediaDevices.getUserMedia({video : true , audio: true }),
+                getLocalStream(),
                 fetchIceServers(),
             ]);
             if(cancelled)return stream.getTracks().forEach((t)=>t.stop());
             iceRef.current = ice;
             localRef.current = stream;
             setLocalStream(stream);
+            setAudioOn(stream.getAudioTracks().length > 0);
+            setVideoOn(stream.getVideoTracks().length > 0);
             joined=true;
             if(socket.connected)joinRoom();
             }catch(err){
                  console.error("Could not access camera/mic",err);
+                 setError("Could not access your camera or microphone. Allow access in the browser and reload the page.");
             }
         })();
         // I'm the newcomer: offer to everyone already here
@@ -263,6 +279,16 @@ if (!m0.setupDone && !m0.setupReported) {
             }
         });
         socket.on("disconnect",()=> setSocketStatus("reconnecting"));
+        // the server refused us: show the message, free the camera and never rejoin on reconnect
+        const rejected = (message)=>{
+            joined = false;
+            setError(message);
+            socket.disconnect();
+            localRef.current?.getTracks().forEach((t)=>t.stop());
+            setLocalStream(null);
+        };
+        socket.on("room-full",(max)=> rejected(`This room is full (${max} people maximum).`));
+        socket.on("join-error",(message)=> rejected(message));
         //I'm the newcomer : offer to everyone already here
         socket.on("room-users", async(users)=>{
             for (const u of users){
@@ -378,5 +404,5 @@ if (!m0.setupDone && !m0.setupReported) {
             }
         };
         
-    return {localStream , peers , socketStatus, videoOn , audioOn,toggleAudio,toggleVideo , messages , sendMessage , screenStream , startScreenShare , stopScreenShare};
+    return {localStream , peers , socketStatus , error, videoOn , audioOn,toggleAudio,toggleVideo , messages , sendMessage , screenStream , startScreenShare , stopScreenShare};
 }
