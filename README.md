@@ -64,32 +64,31 @@ Browser A ◄════ audio/video (direct P2P, or relayed via TURN) ══�
 ## Project structure
 
 ```
-Nextmeet/                        repository root
-├── nextmeet/
-│   ├── client/                  React app (Vite)
-│   │   ├── public/favicon.svg
-│   │   ├── src/
-│   │   │   ├── App.jsx          routes and the home page (name and room ID)
-│   │   │   ├── Room.jsx         meeting screen: video grid, controls, side panels, shortcuts
-│   │   │   ├── useRoom.js       hook with all the WebRTC and Socket.IO logic
-│   │   │   │                    (peer connections, recovery, media state, screen share)
-│   │   │   ├── VideoTile.jsx    one participant: video or avatar, name and badges
-│   │   │   ├── Chat.jsx         chat panel
-│   │   │   ├── index.css        all styles
-│   │   │   └── main.jsx
-│   │   ├── index.html
-│   │   ├── vercel.json          rewrites every path to the app so room links survive a refresh
-│   │   ├── .env.example
-│   │   └── package.json
-│   ├── server/                  signaling server
-│   │   ├── index.js             Express and Socket.IO: rooms, signaling relay, chat, metrics
-│   │   ├── test/
-│   │   │   └── signaling.test.js
-│   │   ├── .env.example
-│   │   └── package.json
-│   ├── docs/                    screenshots used in this README
-│   └── README.md
+Nextmeet/
+├── client/                      React app (Vite)
+│   ├── public/favicon.svg
+│   ├── src/
+│   │   ├── App.jsx              routes and the home page (name and room ID)
+│   │   ├── Room.jsx             meeting screen: video grid, controls, side panels, shortcuts
+│   │   ├── useRoom.js           hook with all the WebRTC and Socket.IO logic
+│   │   │                        (peer connections, recovery, media state, screen share)
+│   │   ├── VideoTile.jsx        one participant: video or avatar, name and badges
+│   │   ├── Chat.jsx             chat panel
+│   │   ├── index.css            all styles
+│   │   └── main.jsx
+│   ├── index.html
+│   ├── vercel.json              rewrites every path to the app so room links survive a refresh
+│   ├── .env.example
+│   └── package.json
+├── server/                      signaling server
+│   ├── index.js                 Express and Socket.IO: rooms, signaling relay, chat, metrics
+│   ├── test/
+│   │   └── signaling.test.js
+│   ├── .env.example
+│   └── package.json
+├── docs/                        screenshots used in this README
 ├── render.yaml                  Render deployment for the server
+├── README.md
 └── .gitignore
 ```
 
@@ -99,12 +98,12 @@ Requires Node.js 18 or newer.
 
 ```bash
 # server
-cd nextmeet/server
+cd server
 npm install
 npm start            # http://localhost:5000
 
 # client (second terminal)
-cd nextmeet/client
+cd client
 npm install
 npm run dev          # http://localhost:5173
 ```
@@ -131,7 +130,7 @@ Server (see `server/.env.example`):
 ### Tests
 
 ```bash
-cd nextmeet/server
+cd server
 npm test
 ```
 
@@ -158,7 +157,7 @@ The full app was also tried in headless Chrome with fake cameras and microphones
 ## Deployment
 
 - **Server (Render):** `render.yaml` in the repository root. Set `CLIENT_URL` to the frontend URL.
-- **Client (Vercel):** set the root directory to `nextmeet/client` and add `VITE_SERVER_URL` pointing at the Render service. `vercel.json` rewrites all paths to the app so room links work after a refresh.
+- **Client (Vercel):** set the root directory to `client` and add `VITE_SERVER_URL` pointing at the Render service. `vercel.json` rewrites all paths to the app so room links work after a refresh.
 - **TURN:** a free Metered account is enough for testing.
 
 ## Results
