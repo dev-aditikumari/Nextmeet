@@ -21,7 +21,11 @@ A browser based video meeting app. Real-time multi-user video rooms built on **W
 
 | Home | Meeting with 5 participants |
 |---|---|
-| ![Home](docs/home.png) | ![Room](docs/room.png) |
+| ![Home](docs/home.png) | ![Meeting with 5 participants](docs/room.png) |
+
+| Chat | Mobile |
+|---|---|
+| ![Chat](docs/chat.png) | ![Mobile](docs/mobile.png) |
 
 ## Tech stack
 
@@ -56,6 +60,38 @@ Browser A ◄════ audio/video (direct P2P, or relayed via TURN) ══�
 | ICE `failed` | ICE restart immediately (up to 3 times) |
 | Restarts exhausted | Rebuild the peer connection (up to 2 times) |
 | Signaling socket drops | Reconnect and re-join the room |
+
+## Project structure
+
+```
+Nextmeet/                        repository root
+├── nextmeet/
+│   ├── client/                  React app (Vite)
+│   │   ├── public/favicon.svg
+│   │   ├── src/
+│   │   │   ├── App.jsx          routes and the home page (name and room ID)
+│   │   │   ├── Room.jsx         meeting screen: video grid, controls, side panels, shortcuts
+│   │   │   ├── useRoom.js       hook with all the WebRTC and Socket.IO logic
+│   │   │   │                    (peer connections, recovery, media state, screen share)
+│   │   │   ├── VideoTile.jsx    one participant: video or avatar, name and badges
+│   │   │   ├── Chat.jsx         chat panel
+│   │   │   ├── index.css        all styles
+│   │   │   └── main.jsx
+│   │   ├── index.html
+│   │   ├── vercel.json          rewrites every path to the app so room links survive a refresh
+│   │   ├── .env.example
+│   │   └── package.json
+│   ├── server/                  signaling server
+│   │   ├── index.js             Express and Socket.IO: rooms, signaling relay, chat, metrics
+│   │   ├── test/
+│   │   │   └── signaling.test.js
+│   │   ├── .env.example
+│   │   └── package.json
+│   ├── docs/                    screenshots used in this README
+│   └── README.md
+├── render.yaml                  Render deployment for the server
+└── .gitignore
+```
 
 ## Getting started
 
