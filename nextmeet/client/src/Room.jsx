@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useRoom } from "./useRooms";
-import VideoTile from "./videoTile";
+import { useRoom } from "./useRoom";
+import VideoTile from "./VideoTile";
 import Chat from "./Chat";
 
 export default function Room() {
