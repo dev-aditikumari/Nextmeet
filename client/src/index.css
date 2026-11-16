@@ -161,3 +161,16 @@ input {
   .controls { gap: 6px; padding: 8px; }
   .controls button { padding: 6px 10px; font-size: 14px; }
 }
+
+/* ---------- home help + github link ---------- */
+.home-help { margin-top: 4px; padding: 10px 12px; border: 1px solid #bfdbfe; background: #eff6ff; border-radius: 8px; font-size: 13px; color: #374151; }
+.home-help ol { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 2px; }
+.github-corner {
+  position: fixed; bottom: 16px; right: 16px; z-index: 50;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 999px;
+  background: #fff; color: #111827; border: 1px solid #e5e7eb;
+  font-size: 14px; font-weight: 500; text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.github-corner:hover { background: #f9fafb; }
